@@ -54,6 +54,8 @@ OD started (1) after realising challenge of scrapping search results through onl
 PF found a solution to it by using Selenium. OD then supported part (2) development.
 Testing of modules started on small sample of the datasets.
 
+Since the single building page provides information only about the subtype, and not if it is an house or an apartment, the type of property parameter (house_is) was checked during module (1).
+
 # Collecting Data (When)
 - Repository: `challenge-collecting-data`
 - Type of Challenge: `Consolidation`
