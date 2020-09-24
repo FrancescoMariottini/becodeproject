@@ -8,8 +8,8 @@ from random import randint
 import re
 
 def get_search_results(maxpage):
-    """Collect search results running up to the maxpage number of both newest 'house'  and 'appartment' sales,
-    returning a nested dictionary of {'url':{'house_is':'0/1','info2':'',...}}"""
+    """Collect property urls and types by going through the search result pages of new 'house' and new 'appartment',
+    stopping at {maxpage} and returning a dictionary of {'url1':'0/1', 'url2':'0/1', ...}. 1 means house. 0 means apartment."""
     # initialise the dictionary with the results
     search_results = {}
     # start the loop
@@ -18,12 +18,10 @@ def get_search_results(maxpage):
         # the results are added if they are not there yet
         for houselink in results_page_scrape(i,"house"):
             if houselink not in search_results:
-                search_results[houselink] = {}
-                search_results[houselink]["house_is"] = 1
+                search_results[houselink] = 1
         for apartmentlink in results_page_scrape(i,"apartment"):
             if apartmentlink not in search_results:
-                search_results[apartmentlink] = {}
-                search_results[apartmentlink]["house_is"] = 0
+                search_results[apartmentlink] = 0
     return search_results
 
 def results_page_scrape(pagenumber,propertytype):
@@ -49,3 +47,4 @@ def results_page_scrape(pagenumber,propertytype):
         links.append(hyperlink)
     driver.close()
     return links
+    
