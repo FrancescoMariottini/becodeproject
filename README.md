@@ -45,16 +45,27 @@ Contributors : Philippe Fimmers (PF), Francesco Mariottini (FM), Opap's Ditudidi
 
 # Development (How)
 First brainstorm identified four main independent modules:
-1) Scrapping links of valid search results from Immoweb (started by OD).
-2) Scrapping required information from each building (started by PF).
-3) Filling founded parameters into a csv (started by FM).
-4) Cleaning result through quality checks.
+1. Scrapping links of valid search results from Immoweb (started by OD).
+* Input: search hyperlinks (one per results page).
+* Output: hyperlinks, type of property and postcode.
+1. Scrapping required information from each building (started by PF).
+* Input: building hyperlink (one per house/apartment).
+* Output: scrapped building parameters and values.
+1. Cleaning result through quality checks (started by FM).
+* Input: building parameters and values as dictionary of lists.
+* Output: full table (dataframe) including checks and cleaned table.
+1. Filling founded parameters into a csv (started by FM).
 
 OD started (1) after realising challenge of scrapping search results through only BeautifulSoup function.
 PF found a solution to it by using Selenium. OD then supported part (2) development.
 Testing of modules started on small sample of the datasets.
 
-Since the single building page provides information only about the subtype, and not if it is an house or an apartment, the type of property parameter (house_is) was checked during module (1).
+Since the single building page provides information only about the subtype, and not if it is an house or an apartment, the type of property parameter (house_is) was checked during module (1). 
+
+It was noticed that, when working on modules independently, it is important to clearly specify the requested input and expected output.
+
+A preliminary analysis of the research engine showed frequent not filled parameters and some inconsistencies in the datasets, i.e.count of True and False values higher than the number of values provided when launching an unfiltered search (e.g. presence of garden).
+
 
 # Collecting Data (When)
 - Repository: `challenge-collecting-data`
