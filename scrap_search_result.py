@@ -34,8 +34,6 @@ def scrap_list(dict_urls):
 
 
 
-
-
     #making a dict with all the property names as key and an empty list as value
     dict_dataframe = {}
     for property_name in properties:
@@ -52,31 +50,30 @@ def scrap_list(dict_urls):
     return dict_dataframe
 
 def scrap(url, is_house): 
-    dict = {} 
+    dictionary = {} 
     r = requests.get(url) 
     soup = BeautifulSoup(r.content,'html.parser')     
 
     #for every property, call the right function to get the needed data
-    dict["hyperlink"] = url
-    dict["locality"] = url.split("/")[7]
-    dict["postcode"] = url.split("/")[8]
-    dict['house_is'] = is_house
-    dict['property_subtype'] = url.split("/")[5]   
-    dict['price'] = get_property_value(soup, "Price")     
-    dict['sale'] = ''
-    dict['rooms_number'] = get_property_value(soup, 'Bedrooms')
-    dict['area'] = get_property_value(soup, 'Living area')
-    dict['kitchen_has'] = get_property_bool(soup, 'Kitchen type')
-    dict['furnished'] = get_property_bool(soup, 'Furnished')
-    dict['open_fire'] = get_property_bool(soup, 'Fireplace')
-    dict['terrace'] = get_property_bool(soup, 'Terrace')
-    dict['terrace_area'] = get_property_value(soup, 'Terrace surface')
-    dict['garden'] = get_property_bool(soup, 'Garden')
-    dict['garden_area'] = get_property_value(soup, 'Garden surface')
-    dict['land_surface'] = None
-    dict['land_plot_surface'] = None
-    dict['facades_number'] = get_property_value(soup, 'Facades')
-    dict['swimming_pool_has'] = get_property_bool(soup, 'Swimming pool')
+    dictionary["hyperlink"] = url
+    dictionary["locality"] = url.split("/")[7]
+    dictionary["postcode"] = url.split("/")[8]
+    dictionary['house_is'] = is_house
+    dictionary['property_subtype'] = url.split("/")[5]   
+    dictionary['price'] = get_property_value(soup, "Price")     
+    dictionary['sale'] = ''
+    dictionary['rooms_number'] = get_property_value(soup, 'Bedrooms')
+    dictionary['area'] = get_property_value(soup, 'Living area')
+    dictionary['kitchen_has'] = get_property_bool(soup, 'Kitchen type')
+    dictionary['furnished'] = get_property_bool(soup, 'Furnished')
+    dictionary['open_fire'] = get_property_bool(soup, 'Fireplace')
+    dictionary['terrace'] = get_property_bool(soup, 'Terrace')
+    dictionary['terrace_area'] = get_property_value(soup, 'Terrace surface')
+    dictionary['garden'] = get_property_bool(soup, 'Garden')
+    dictionary['garden_area'] = get_property_value(soup, 'Garden surface')
+    dictionary['land_surface'] = None
+    dictionary['land_plot_surface'] = None
+    dictionary['facades_number'] = get_property_value(soup, 'Facades')
+    dictionary['swimming_pool_has'] = get_property_bool(soup, 'Swimming pool')
     
-    return dict
-    
+    return dictionary
