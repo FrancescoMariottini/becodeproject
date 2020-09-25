@@ -9,7 +9,7 @@ _VALUES_FORMAT = {'hyperlink': 'str',
                   'house_is': 'yn',
                   'property_subtype': 'str',
                   'price': 'int',
-                  'sale': 'int',
+                  'sale': 'str',
                   'rooms_number': 'int',
                   'area': 'int',
                   'kitchen_has': 'yn',
@@ -22,7 +22,7 @@ _VALUES_FORMAT = {'hyperlink': 'str',
                   'land_surface': 'int',
                   'land_plot_surface': 'int',
                   'facades_number': 'int',
-                  'swimming_pool_has': 'int'}
+                  'swimming_pool_has': 'yn'}
 
 dict_urls = search.get_search_results(1)
 print(dict_urls)
@@ -34,8 +34,6 @@ dq = dataquality.DataQuality(dict_dataframe)
 
 df_flagged, df_cleaned, report = dq.domain_integrity(values_format = _VALUES_FORMAT)
 
-print(df_flagged, df_cleaned, report)
-
 df_flagged, df_cleaned, report = dq.entity_integrity()
 
 path = os.path.abspath('')
@@ -46,4 +44,3 @@ df_cleaned.to_csv(filepath)
 filepath = os.path.join(path, "report.csv")
 report.to_csv(filepath)
 print("CSVs created at: " + str(path))
-""""""
