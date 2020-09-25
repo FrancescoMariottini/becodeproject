@@ -4,24 +4,24 @@ pandas.set_option('display.max_columns', None)
 
 _VALUES_FORMAT = {'hyperlink': 'str',
                   'locality': 'str',
-                  'postcode': 'float',
+                  'postcode': 'int',
                   'house_is': 'yn',
                   'property_subtype': 'str',
-                  'price': 'float',
-                  'sale': 'float',
-                  'rooms_number': 'float',
-                  'area': 'float',
+                  'price': 'int',
+                  'sale': 'str',
+                  'rooms_number': 'int',
+                  'area': 'int',
                   'kitchen_has': 'yn',
                   'furnished': 'yn',
                   'open_fire': 'yn',
                   'terrace': 'yn',
-                  'terrace_area': 'float',
+                  'terrace_area': 'int',
                   'garden': 'yn',
-                  'garden_area': 'float',
-                  'land_surface': 'float',
-                  'land_plot_surface': 'float',
-                  'facades_number': 'float',
-                  'swimming_pool_has': 'float'}
+                  'garden_area': 'int',
+                  'land_surface': 'int',
+                  'land_plot_surface': 'int',
+                  'facades_number': 'int',
+                  'swimming_pool_has': 'yn'}
 
 
 class DataQuality:
@@ -55,29 +55,27 @@ class DataQuality:
             values_format = _VALUES_FORMAT
 
         def type_change(value, value_type):
-            if value is not None:
-                if value_type == "float":
-                    try:
-                        value = float(value)
-                    except TypeError:
-                        value = None
-                if value_type == "float":
-                    try:
-                        value = float(value)
-                    except TypeError:
-                        value = None
-                if value_type == "int":
-                    try:
-                        value = int(value)
-                    except TypeError:
-                        value = None
-                if value_type == "yn":
-                    if (value == 1) or (value == "1") or (value == True) or (value == "True"):
-                        value = "Yes"
-                    elif (value == 0) or (value == "0") or (value == False) or (value == "False"):
-                        value = "No"
-                else:
-                    value = value
+            try:
+                if value is not None:
+                    if value_type == "float":
+                        try:
+                            value = float(value)
+                        except TypeError:
+                            value = None
+                    if value_type == "int":
+                        try:
+                            value = int(value)
+                        except TypeError:
+                            value = None
+                    if value_type == "yn":
+                        if (value == 1) or (value == "1") or (value == True) or (value == "True"):
+                            value = "Yes"
+                        elif (value == 0) or (value == "0") or (value == False) or (value == "False"):
+                            value = "No"
+                    else:
+                        value = value
+            except:
+                value = None
             return value
 
         for header, value_type in values_format.items():
@@ -102,4 +100,5 @@ class DataQuality:
         unique_series = duplicates_check[duplicates_check == False]
         self.df_flagged["duplicates"] = duplicates_check
         self.df_cleaned = self.df_cleaned[self.df_cleaned.index.isin(unique_series)]
+
         return self.df_flagged, self.df_cleaned, self.report
