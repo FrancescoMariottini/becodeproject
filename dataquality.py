@@ -1,26 +1,28 @@
 import pandas
+
 pandas.set_option('display.max_columns', None)
 
-_VARIABLES_TYPES = {'hyperlink':str,
- 'locality':str,
- 'postcode':int,
- 'house_is':bin, #1.0 or None
- 'property_subtype':str,
- 'price':int,
- 'sale':int,
- 'rooms_number':int,
- 'area':float,
- 'kitchen_has':bin,
- 'furnished':bin,
- 'open_fire':bin,
- 'terrace':bin,
- 'terrace_area':float,
- 'garden':bin,
- 'garden_area':float,
- 'land_surface':float,
- 'land_plot_surface':float,
- 'facades_number':int,
- 'swimming_pool_has':bin}
+_VALUES_FORMAT = {'hyperlink': 'str',
+                  'locality': 'str',
+                  'postcode': 'float',
+                  'house_is': 'yn',
+                  'property_subtype': 'str',
+                  'price': 'float',
+                  'sale': 'float',
+                  'rooms_number': 'float',
+                  'area': 'float',
+                  'kitchen_has': 'yn',
+                  'furnished': 'yn',
+                  'open_fire': 'yn',
+                  'terrace': 'yn',
+                  'terrace_area': 'float',
+                  'garden': 'yn',
+                  'garden_area': 'float',
+                  'land_surface': 'float',
+                  'land_plot_surface': 'float',
+                  'facades_number': 'float',
+                  'swimming_pool_has': 'float'}
+
 
 class DataQuality:
     def __init__(self, table):
@@ -35,47 +37,69 @@ class DataQuality:
         countmax = max(self.report.loc["count", :].values)
         self.unique_identifiers = []
         for column in self.df_flagged.columns:
-            if self.df_flagged.loc["count", column] == countmax:
+            if self.report.loc["count", column] == countmax:
                 self.unique_identifiers.append(column)
         print(self.report)
-    def __check_with_headers__(self,values_to_check):
-        if isinstance(values_to_check,dict):
+
+    def __check_with_headers__(self, values_to_check):
+        if isinstance(values_to_check, dict):
             values_to_check = values_to_check.keys()
-        if isinstance(values_to_check,list):
+        if isinstance(values_to_check, list):
             values_to_check = values_to_check
         if any([key not in self.df_cleaned.columns for key in values_to_check]):
             raise Exception("Provided values(s) not in the table headers")
-    def domain_integrity(self, variables_types: dict):
-        self.__check_with_headers__(variables_types)
-        if variables_types is None:
-            variables_types = _VARIABLES_TYPES
-        def type_change(value, variable_type):
+
+    def domain_integrity(self, values_format: dict):
+        self.__check_with_headers__(values_format)
+        if values_format is None:
+            values_format = _VALUES_FORMAT
+
+        def type_change(value, value_type):
             if value is not None:
-                if variable_type == int:
-                    value = int(value)
-                if variable_type == bin:
-                    value = bin(value)
-                if variable_type == str:
-                    value = str(value)
-                if variable_type == float:
-                    value = float(value)
-                if variable_type == bool:
-                    value = bool(value)
+                if value_type == "float":
+                    try:
+                        value = float(value)
+                    except TypeError:
+                        value = None
+                if value_type == "float":
+                    try:
+                        value = float(value)
+                    except TypeError:
+                        value = None
+                if value_type == "int":
+                    try:
+                        value = int(value)
+                    except TypeError:
+                        value = None
+                if value_type == "yn":
+                    if (value == 1) or (value == "1") or (value == True) or (value == "True"):
+                        value = "Yes"
+                    elif (value == 0) or (value == "0") or (value == False) or (value == "False"):
+                        value = "No"
+                else:
+                    value = value
             return value
-        for header, variable_type in variables_types.items():
-            self.df_flagged[str("integrity_" + header)] = self.df_flagged[header].apply(
-                lambda x: isinstance(x, variable_type))
-            integrity_series = self.df_flagged[:,self.df_flagged[str("integrity_" + header)]==True]
-            self.df_cleaned = self.df_cleaned[self.df_cleaned.index.isin(integrity_series)]
+
+        for header, value_type in values_format.items():
+            # try:
+            #
+            #self.df_flagged[str("integrity_" + header)] = self.df_flagged[header].apply(
+            #    lambda x: isinstance(x, value_type))
+            # except TypeError:
+            # print(value_type)
+            #integrity_series = self.df_flagged[self.df_flagged.loc[:, "integrity_" + str(header)] == True]
+            #self.df_cleaned = self.df_cleaned[self.df_cleaned.index.isin(integrity_series)]
             self.df_cleaned[header] = self.df_cleaned[header].apply(
-                lambda x: type_change(x, variable_type))
+                lambda x: type_change(x, value_type))
             self.report.loc["none", header] = self.df_flagged.loc[:, header].isnull().sum(axis=0)
-        return self.df_flagged, self.df_flagged, self.report
-    def entity_integrity(self, unique_identifiers):
-        if isinstance(unique_identifiers,list) == False:
+        return self.df_flagged, self.df_cleaned, self.report
+
+    def entity_integrity(self, unique_identifiers = None):
+        if unique_identifiers is None:
             unique_identifiers = self.unique_identifiers
-        duplicates_check = self.df_flagged[:,self.df_cleaned.columns].duplicated(subset=unique_identifiers)
-        unique_series = duplicates_check[duplicates_check == True]
+        #if isinstance(unique_identifiers, list) == False:
+        duplicates_check = self.df_flagged.duplicated(subset=unique_identifiers)
+        unique_series = duplicates_check[duplicates_check == False]
         self.df_flagged["duplicates"] = duplicates_check
-        self.df_cleaned = self.cleaned[self.df_cleaned.index.isin(unique_series)]
-        return self.df_flagged, self.df_flagged, self.report
+        self.df_cleaned = self.df_cleaned[self.df_cleaned.index.isin(unique_series)]
+        return self.df_flagged, self.df_cleaned, self.report
