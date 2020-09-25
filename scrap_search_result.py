@@ -16,9 +16,9 @@ def get_property_bool(soup, name):
     for elem in soup.find_all('tr'):
         #If it finds an element with text equals to property name it will return true
         if elem.th and re.search(name, str(elem.th.string)):
-            return 1
+            return True
     #If nothing was found, will return false
-    return 0
+    return False
 
 
 def scrap_list(dict_urls): 
