@@ -34,6 +34,8 @@ def scrap_list(dict_urls):
 
 
 
+
+
     #making a dict with all the property names as key and an empty list as value
     dict_dataframe = {}
     for property_name in properties:
@@ -55,6 +57,7 @@ def scrap(url, is_house):
     soup = BeautifulSoup(r.content,'html.parser')     
 
     #for every property, call the right function to get the needed data
+
     dictionary["hyperlink"] = url
     dictionary["locality"] = url.split("/")[7]
     dictionary["postcode"] = url.split("/")[8]
