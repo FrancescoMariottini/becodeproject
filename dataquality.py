@@ -28,13 +28,15 @@ class DataQuality:
     def __init__(self, table):
         if isinstance(table, pandas.DataFrame):
             self.df_flagged = table
+            self.df_cleaned = table
         if isinstance(table, dict):
             self.df_flagged = pandas.DataFrame(table)
+            self.df_cleaned = pandas.DataFrame(table)
         else:
             raise Exception("Provided table is neither a dictionary nor a dataframe")
-        self.df_cleaned = self.df_flagged
         self.report = self.df_flagged.describe(include='all')
         countmax = max(self.report.loc["count", :].values)
+        self.id_header = self.df_flagged.columns[0]
         self.unique_identifiers = []
         for column in self.df_flagged.columns:
             if self.report.loc["count", column] == countmax:
@@ -95,10 +97,8 @@ class DataQuality:
     def entity_integrity(self, unique_identifiers = None):
         if unique_identifiers is None:
             unique_identifiers = self.unique_identifiers
-        #if isinstance(unique_identifiers, list) == False:
-        duplicates_check = self.df_flagged.duplicated(subset=unique_identifiers)
-        unique_series = duplicates_check[duplicates_check == False]
-        self.df_flagged["duplicates"] = duplicates_check
-        self.df_cleaned = self.df_cleaned[self.df_cleaned.index.isin(unique_series)]
-
+        #if isinstance(duplicates_headers, list) == False:
+        self.df_flagged["duplicates"] = self.df_flagged.duplicated(subset=unique_identifiers)
+        unique_links = self.df_flagged.loc[self.df_flagged.duplicates == False,self.id_header]
+        self.df_cleaned = self.df_cleaned[self.df_cleaned[self.id_header].isin(unique_links)]
         return self.df_flagged, self.df_cleaned, self.report
