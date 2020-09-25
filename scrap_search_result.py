@@ -47,7 +47,7 @@ def scrap_list(dict_urls):
 
         #for each property (key) of the scrapping out put, match it with dataframe property. If none exist, just use None
         for key1 in dict_dataframe:
-            dict_dataframe[key1].append(dict_result_scrapping.get(key1, False) or None)            
+            dict_dataframe[key1].append(dict_result_scrapping[key1])            
     
     return dict_dataframe
 
@@ -75,7 +75,7 @@ def scrap(url, is_house):
     dictionary['garden'] = get_property_bool(soup, 'Garden')
     dictionary['garden_area'] = get_property_value(soup, 'Garden surface')
     dictionary['land_surface'] = None
-    dictionary['land_plot_surface'] = None
+    dictionary['land_plot_surface'] = get_property_value(soup, 'Surface of the plot')
     dictionary['facades_number'] = get_property_value(soup, 'Facades')
     dictionary['swimming_pool_has'] = get_property_bool(soup, 'Swimming pool')
     
