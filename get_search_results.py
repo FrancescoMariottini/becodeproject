@@ -25,7 +25,7 @@ def get_search_results(maxpage):
     return search_results
 
 def results_page_scrape(pagenumber,propertytype):
-    '''A subroutine scraping links from search results on a propertytype/page'''
+    '''A subroutine scraping links from 1 specific search result page, links to projects are ignored'''
     # initialise the return
     links = []
     # I slow down the frequency of requests to avoid being identified and therefore ban from the site
@@ -43,8 +43,9 @@ def results_page_scrape(pagenumber,propertytype):
         hyperlink = elem.get('href')
         # cut the searchID off
         hyperlink = re.match("(.+)\?searchId=.+", hyperlink).group(1)
-        # append to the return
-        links.append(hyperlink)
+        # include in the return if it is not a -project-
+        if "-project-" not in hyperlink:
+            links.append(hyperlink)
     driver.close()
     return links
     
