@@ -7,9 +7,10 @@ import random
 from random import randint
 import re
 
-def get_search_results(results=120):
-    """Collect property urls and types by going through the search result pages of new 'house' and new 'appartment',
-    stopping at {results} and returning a dictionary of {'url1':True/False, 'url2':True/False, ...}. True means house. False means apartment."""
+def get_search_results(minresults=40):
+    """Collect property urls and types by going through the search result pages of new houses and appartments,
+    stopping when having reached the minimum number of results and returning a dictionary of {'url1':True/False, 'url2':True/False, ...}.
+    True means house. False means apartment. Without argument only the first page is collected (~60 results)"""
     # initialise the dictionary with the results
     search_results = {}
     # initialise the result count
@@ -54,3 +55,4 @@ def results_page_scrape(page_number,property_type):
             links.append(hyperlink)
     driver.close()
     return links
+    
