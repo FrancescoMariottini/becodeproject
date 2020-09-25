@@ -7,25 +7,31 @@ import random
 from random import randint
 import re
 
-def get_search_results(maxpage):
+def get_search_results(results=120):
     """Collect property urls and types by going through the search result pages of new 'house' and new 'appartment',
-    stopping at {maxpage} and returning a dictionary of {'url1':'0/1', 'url2':'0/1', ...}. 1 means house. 0 means apartment."""
+    stopping at {results} and returning a dictionary of {'url1':True/False, 'url2':True/False, ...}. True means house. False means apartment."""
     # initialise the dictionary with the results
     search_results = {}
+    # initialise the result count
+    result_count = 0
+    # set the startpage of the search
+    page_number = 1
     # start the loop
-    for i in range(1, maxpage+1):
+    while result_count < results:
         # for each loop, scrape one results page of houses and one of appartments
         # the results are added if they are not there yet
-        for houselink in results_page_scrape(i,"house"):
+        for houselink in results_page_scrape(page_number,"house"):
             if houselink not in search_results:
-                search_results[houselink] = 1
-        for apartmentlink in results_page_scrape(i,"apartment"):
+                search_results[houselink] = True
+        for apartmentlink in results_page_scrape(page_number,"apartment"):
             if apartmentlink not in search_results:
-                search_results[apartmentlink] = 0
+                search_results[apartmentlink] = False
+        result_count = len(search_results)
+        page_number += 1
     return search_results
 
-def results_page_scrape(pagenumber,propertytype):
-    '''A subroutine scraping links from search results on a propertytype/page'''
+def results_page_scrape(page_number,property_type):
+    '''A subroutine scraping links from 1 specific search result page, links to projects are ignored'''
     # initialise the return
     links = []
     # I slow down the frequency of requests to avoid being identified and therefore ban from the site
@@ -34,7 +40,7 @@ def results_page_scrape(pagenumber,propertytype):
     # span it returns as soon as finding them, else it raises an exception after 10 seconds.
     driver = webdriver.Chrome()
     driver.implicitly_wait(10)
-    url=f'https://www.immoweb.be/en/search/{propertytype}/for-sale?countries=BE&isALifeAnnuitySale=false&page={pagenumber}&orderBy=newest'
+    url=f'https://www.immoweb.be/en/search/{property_type}/for-sale?countries=BE&isALifeAnnuitySale=false&page={page_number}&orderBy=newest'
     driver.get(url)
     html = driver.page_source
     soup = BeautifulSoup(html,'lxml')
@@ -43,8 +49,8 @@ def results_page_scrape(pagenumber,propertytype):
         hyperlink = elem.get('href')
         # cut the searchID off
         hyperlink = re.match("(.+)\?searchId=.+", hyperlink).group(1)
-        # append to the return
-        links.append(hyperlink)
+        # include in the return if it is not a -project-
+        if "-project-" not in hyperlink:
+            links.append(hyperlink)
     driver.close()
     return links
-    
