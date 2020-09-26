@@ -38,20 +38,19 @@ def table_to_csv(table, filename: str, path=os.path.abspath('')):
 
 urls_dict = search.get_search_results(1)
 lists_dict = scrap.scrap_list(urls_dict)
+dq = dataquality.DataQuality(lists_dict)
 
-# table_to_csv(dict_dataframe, "lists") #local testing version
 #df = pandas.read_csv(os.path.join(os.path.abspath('') + "\lists.csv")) #local testing version
-#dqp = dataquality.DataQuality(df)
+#dq = dataquality.DataQuality(df)
 
-dqp = dataquality.DataQuality(lists_dict)
 
-flagged = dqp.flag()
+flagged = dq.flag()
 table_to_csv(flagged, "flagged")
 
-description = dqp.describe()
+description = dq.describe()
 table_to_csv(description, "description")
 
-cleaned = dqp.clean()
-cleaned = dqp.values_format(df=cleaned, columns_dtypes=_VALUES_FORMAT)
+cleaned = dq.clean()
+cleaned = dq.values_format(df=cleaned, columns_dtypes=_VALUES_FORMAT)
 
 table_to_csv(cleaned, "cleaned")
