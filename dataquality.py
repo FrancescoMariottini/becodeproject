@@ -65,7 +65,7 @@ class DataQuality: #initialise the dq process by importing a table and setting u
         cleaned = flagged.copy(deep=True).loc[:, description.columns] #use only non-flagging part of the flagged df
         if "duplicates" in flagged.columns:
             id_column = flagged.columns[0]
-            unique_id = flagged.loc[flagged.duplicates is False, id_column] #get identifies for unique rows
+            unique_id = flagged.loc[flagged.duplicates == False, id_column] #get identifies for unique rows
             cleaned = cleaned[cleaned[id_column].isin(unique_id)]
         return cleaned
 
@@ -108,5 +108,5 @@ class DataQuality: #initialise the dq process by importing a table and setting u
             return value
 
         for column, column_dtype in columns_dtypes.items(): #convert dataframe based on dictionary
-            df[column] = df[column].apply(lambda x: dtype_change(x, column, column_dtype))
+            df.loc[:, column] = df.loc[:, column].apply(lambda x: dtype_change(x, column, column_dtype))
         return df
