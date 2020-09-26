@@ -1,104 +1,112 @@
 import pandas
+import re #to extract variable type as string from type class
 
-pandas.set_option('display.max_columns', None)
+_METHODS = ["duplicates", "null"]
 
-_VALUES_FORMAT = {'hyperlink': 'str',
-                  'locality': 'str',
-                  'postcode': 'int',
-                  'house_is': 'yn',
-                  'property_subtype': 'str',
-                  'price': 'int',
-                  'sale': 'str',
-                  'rooms_number': 'int',
-                  'area': 'int',
-                  'kitchen_has': 'yn',
-                  'furnished': 'yn',
-                  'open_fire': 'yn',
-                  'terrace': 'yn',
-                  'terrace_area': 'int',
-                  'garden': 'yn',
-                  'garden_area': 'int',
-                  'land_surface': 'int',
-                  'land_plot_surface': 'int',
-                  'facades_number': 'int',
-                  'swimming_pool_has': 'yn'}
-
-
-class DataQuality:
-    def __init__(self, table):
-        if isinstance(table, pandas.DataFrame):
-            self.df_flagged = table
-            self.df_cleaned = table
-        if isinstance(table, dict):
-            self.df_flagged = pandas.DataFrame(table)
-            self.df_cleaned = pandas.DataFrame(table)
+class DataQuality: #initialise the dq process by importing a table and setting up the main parameters
+    def __init__(self, table, methods=None):
+        if methods is None:
+            methods = _METHODS
+        if isinstance(table, pandas.DataFrame): #import table into class as dataframe
+            self.df = table
+        elif isinstance(table, dict): #convert dictionary into dataframe if needed
+            self.df = pandas.DataFrame(table)
         else:
             raise Exception("Provided table is neither a dictionary nor a dataframe")
-        self.report = self.df_flagged.describe(include='all')
-        countmax = max(self.report.loc["count", :].values)
-        self.id_header = self.df_flagged.columns[0]
+        if all([method in _METHODS for method in methods]):
+            self.methods = methods
+        else:
+            raise Exception("Not all requested methods are available")
+        self.flagged, self.description = self.__self_or_none__(dataframe=self.df) #initialise dataframes in the class
+        count_max = max(self.description.loc["count", :].values) #identify max number of valid values per column
         self.unique_identifiers = []
-        for column in self.df_flagged.columns:
-            if self.report.loc["count", column] == countmax:
+        for column in self.df.columns: #based on count_max the columns used to identify the duplicates are appended in a list
+            if column != self.df.columns[0] and self.description.loc["count", column] == count_max:
                 self.unique_identifiers.append(column)
-        print(self.report)
 
-    def __check_with_headers__(self, values_to_check):
+    def __self_or_none__(self, dataframe=None): #initialise the dq dataframes or recovering previous ones
+        if not isinstance(dataframe, pandas.DataFrame):
+            flagged = self.flagged
+            description = self.description
+        elif isinstance(dataframe, pandas.DataFrame):
+            flagged = dataframe.copy(deep=True) #Flagged df
+            description = flagged.replace({False: int(0), True: int(1)}).describe(include='all') #T/F converted into 0/1 before calculating statistical parameters
+            description.append(self.df.dtypes.rename("dtypes"), ignore_index=False) #column data types added to the description dataframe
+        return flagged, description
+
+    def __check_with_headers__(self, values_to_check, dataframe: pandas.DataFrame): #check if provided list/dictionary values are in the dataframe columns
         if isinstance(values_to_check, dict):
             values_to_check = values_to_check.keys()
-        if isinstance(values_to_check, list):
+        elif isinstance(values_to_check, list):
             values_to_check = values_to_check
-        if any([key not in self.df_cleaned.columns for key in values_to_check]):
+        else:
+            raise Exception("Provided values(s) neither a list nor a dictionary")
+        if any([key not in dataframe.columns for key in values_to_check]):
             raise Exception("Provided values(s) not in the table headers")
 
-    def domain_integrity(self, values_format: dict):
-        self.__check_with_headers__(values_format)
-        if values_format is None:
-            values_format = _VALUES_FORMAT
+    def flag(self, df=None): #flag the dataframe for errors
+        flagged, description = self.__self_or_none__(df)
+        if "duplicates" in self.methods:
+            flagged["duplicates"] = flagged.duplicated(subset=self.unique_identifiers) #find duplicates based on previously defined identifiers (columns)
+        if "null" in self.methods:
+            flagged["null"] = flagged.isnull().sum(axis=0) #count the number of null per row
+        if df is None:
+            self.flagged = flagged
+        return flagged
 
-        def type_change(value, value_type):
-            try:
-                if value is not None:
-                    if value_type == "float":
-                        try:
-                            value = float(value)
-                        except TypeError:
-                            value = None
-                    if value_type == "int":
-                        try:
+    def describe(self, df=None): #provide a new description for the dataframe or recover a previous one
+        flagged, description = self.__self_or_none__(df)
+        if df is None:
+            self.description = description
+        return description
+
+    def clean(self, df=None): #clean the dataframe for duplicates, completely empty rows removed within other modules
+        flagged, description = self.__self_or_none__(df)
+        cleaned = flagged.copy(deep=True).loc[:, description.columns] #use only non-flagging part of the flagged df
+        if "duplicates" in flagged.columns:
+            id_column = flagged.columns[0]
+            unique_id = flagged.loc[flagged.duplicates is False, id_column] #get identifies for unique rows
+            cleaned = cleaned[cleaned[id_column].isin(unique_id)]
+        return cleaned
+
+    def values_format(self, columns_dtypes: dict, df=None): #format values based on provided dictionary
+        if not isinstance(df, pandas.DataFrame):
+            df = self.df
+        self.__check_with_headers__(values_to_check=columns_dtypes, dataframe=df)
+
+        def dtype_change(value, column, dtype_requested):
+            if value is not None and pandas.isna(value) is False: # return ignore nan or none values as they are
+                m = re.search("<class '(?P<t>\w+)'>", str(type(value))) #extract variable type as string from type class
+                type_current = m.group('t')
+                if type_current != dtype_requested:
+                    if isinstance(value, str):
+                        if dtype_requested == "int" and value.isnumeric():
                             value = int(value)
-                        except TypeError:
-                            value = None
-                    if value_type == "yn":
-                        if (value == 1) or (value == "1") or (value == True) or (value == "True"):
-                            value = "Yes"
-                        elif (value == 0) or (value == "0") or (value == False) or (value == "False"):
-                            value = "No"
+                        elif dtype_requested == "float" and value.isdecimal():
+                            value = float(value)
+                        elif dtype_requested == "yn":
+                            if (value == "1") or (value == "True"):
+                                value = "Yes"
+                            elif (value == "0") or (value == "False"):
+                                value = "No"
+                    elif isinstance(value, bool):
+                        if dtype_requested == "yn":
+                            if value:
+                                value = "Yes"
+                            elif not value:
+                                value = "No"
+                    elif isinstance(value, int) and dtype_requested == "float":
+                        value = float(value)
+                    elif isinstance(value, float) and dtype_requested == "int" and value.is_integer():
+                        value = int(value)
+                    elif dtype_requested == "str":
+                        value = str(value)
                     else:
-                        value = value
-            except:
-                value = None
+                        message = column + " " + type_current + " " + str(
+                            value) + " not converted into " + dtype_requested
+                        raise Exception(message)
             return value
 
-        for header, value_type in values_format.items():
-            # try:
-            #
-            #self.df_flagged[str("integrity_" + header)] = self.df_flagged[header].apply(
-            #    lambda x: isinstance(x, value_type))
-            # except TypeError:
-            # print(value_type)
-            #integrity_series = self.df_flagged[self.df_flagged.loc[:, "integrity_" + str(header)] == True]
-            #self.df_cleaned = self.df_cleaned[self.df_cleaned.index.isin(integrity_series)]
-            self.df_cleaned[header] = self.df_cleaned[header].apply(
-                lambda x: type_change(x, value_type))
-            self.report.loc["none", header] = self.df_flagged.loc[:, header].isnull().sum(axis=0)
-        return self.df_flagged, self.df_cleaned, self.report
-
-    def entity_integrity(self, unique_identifiers = None):
-        if unique_identifiers is None:
-            unique_identifiers = self.unique_identifiers
-        #if isinstance(duplicates_headers, list) == False:
-        self.df_flagged["duplicates"] = self.df_flagged.duplicated(subset=unique_identifiers)
-        unique_links = self.df_flagged.loc[self.df_flagged.duplicates == False,self.id_header]
-        self.df_cleaned = self.df_cleaned[self.df_cleaned[self.id_header].isin(unique_links)]
-        return self.df_flagged, self.df_cleaned, self.report
+        for column, column_dtype in columns_dtypes.items(): #convert dataframe based on dictionary
+            df[column] = df[column].apply(lambda x: dtype_change(x, column, column_dtype))
+        return df
