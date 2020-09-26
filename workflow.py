@@ -1,6 +1,7 @@
 import get_search_results as search
 import scrap_search_result as scrap
 import dataquality as dataquality
+import pandas as pandas
 import os
 
 _VALUES_FORMAT = {'hyperlink': 'str',
@@ -24,23 +25,33 @@ _VALUES_FORMAT = {'hyperlink': 'str',
                   'facades_number': 'int',
                   'swimming_pool_has': 'yn'}
 
-dict_urls = search.get_search_results(1)
-print(dict_urls)
 
-dict_dataframe = scrap.scrap_list(dict_urls)
-print(dict_dataframe)
+def table_to_csv(table, filename: str, path=os.path.abspath('')):
+    if isinstance(table, dict):
+        table = pandas.DataFrame(table)
+    elif not isinstance(table, pandas.DataFrame):
+        raise Exception("Provided table is neither a dataframe nor a dictionary of lists")
+    table.to_csv(os.path.join(path, filename + ".csv"))
+    print(filename + ".csv" + " created at: " + path)
+    return None
 
-dq = dataquality.DataQuality(dict_dataframe)
 
-df_flagged, df_cleaned, report = dq.domain_integrity(values_format = _VALUES_FORMAT)
+urls_dict = search.get_search_results(1)
+lists_dict = scrap.scrap_list(urls_dict)
 
-df_flagged, df_cleaned, report = dq.entity_integrity()
+# table_to_csv(dict_dataframe, "lists") #local testing version
+#df = pandas.read_csv(os.path.join(os.path.abspath('') + "\lists.csv")) #local testing version
+#dqp = dataquality.DataQuality(df)
 
-path = os.path.abspath('')
-filepath = os.path.join(path, "flagged.csv")
-df_flagged.to_csv(filepath)
-filepath = os.path.join(path, "cleaned.csv")
-df_cleaned.to_csv(filepath)
-filepath = os.path.join(path, "report.csv")
-report.to_csv(filepath)
-print("CSVs created at: " + str(path))
+dqp = dataquality.DataQuality(lists_dict)
+
+flagged = dqp.flag()
+table_to_csv(flagged, "flagged")
+
+description = dqp.describe()
+table_to_csv(description, "description")
+
+cleaned = dqp.clean()
+cleaned = dqp.values_format(df=cleaned, columns_dtypes=_VALUES_FORMAT)
+
+table_to_csv(cleaned, "cleaned")
