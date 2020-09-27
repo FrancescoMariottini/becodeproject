@@ -84,7 +84,7 @@ class DataQuality:  # initialise the dq process by importing a table and setting
         self.__check_with_headers__(values_to_check=columns_dtypes, dataframe=df)
 
         def dtype_change(value, column, dtype_requested):
-            if value is None or value == "" or value != value:
+            if value is None or value == "" or value != value: #filling null values
                 value = fill_empty
             else:  # return ignore nan or none values as they are
                 m = re.search("<class '(?P<t>\w+)'>",
@@ -119,5 +119,7 @@ class DataQuality:  # initialise the dq process by importing a table and setting
 
         for column, column_dtype in columns_dtypes.items():  # convert dataframe based on dictionary
             df.loc[:, column] = df.loc[:, column].apply(lambda x: dtype_change(x, column, column_dtype))
+
+        df = df.fillna(value=fill_empty) #filling empty elements
 
         return df
