@@ -32,7 +32,7 @@ class DataQuality:  # initialise the dq process by importing a table and setting
         elif isinstance(dataframe, pandas.DataFrame):
             flagged = dataframe.copy(deep=True)  # Flagged df
             description = flagged.replace(
-                {False: int(0), True: int(1), "No": int(0), "Yes": int(1)}).describe( # T/F converted into 0/1 before calculating statistical parameters
+                {False: int(0), True: int(1), "No": int(0), "Yes": int(1), "None": None}).describe( # T/F converted into 0/1 before calculating statistical parameters
                 include='all',
                 percentiles=[0.05, 0.5, 0.95])  #percentile 0.05 and 0.95 more relevant to identify possible outliers
             description = description.append(self.df.dtypes.rename("dtypes"),
@@ -78,13 +78,15 @@ class DataQuality:  # initialise the dq process by importing a table and setting
             self.description = description
         return cleaned
 
-    def values_format(self, columns_dtypes: dict, df=None):  # format values based on provided dictionary
+    def values_format(self, columns_dtypes: dict, df=None, none_to_string=True):  # format values based on provided dictionary
         if not isinstance(df, pandas.DataFrame):
             df = self.df
         self.__check_with_headers__(values_to_check=columns_dtypes, dataframe=df)
 
         def dtype_change(value, column, dtype_requested):
-            if value is not None and pandas.isna(value) is False:  # return ignore nan or none values as they are
+            if (value is None or pandas.isna(value) or value == "") and none_to_string:
+                value = "None"
+            elif value is not None and pandas.isna(value) is False and value != "":  # return ignore nan or none values as they are
                 m = re.search("<class '(?P<t>\w+)'>",
                               str(type(value)))  # extract variable type as string from type class
                 type_current = m.group('t')
@@ -112,9 +114,7 @@ class DataQuality:  # initialise the dq process by importing a table and setting
                     elif dtype_requested == "str":
                         value = str(value)
                     else:
-                        message = column + " " + type_current + " " + str(
-                            value) + " not converted into " + dtype_requested
-                        raise Exception(message)
+                        raise Exception(r"{} {} {} {} not converted into {}".format(column, type_current, str(value), dtype_requested))
             return value
 
         for column, column_dtype in columns_dtypes.items():  # convert dataframe based on dictionary
