@@ -1,15 +1,16 @@
 import pandas
-import re #to extract variable type as string from type class
+import re  # to extract variable type as string from type class
 
 _METHODS = ["duplicates", "null"]
 
-class DataQuality: #initialise the dq process by importing a table and setting up the main parameters
+
+class DataQuality:  # initialise the dq process by importing a table and setting up the main parameters
     def __init__(self, table, methods=None):
         if methods is None:
             methods = _METHODS
-        if isinstance(table, pandas.DataFrame): #import table into class as dataframe
+        if isinstance(table, pandas.DataFrame):  # import table into class as dataframe
             self.df = table
-        elif isinstance(table, dict): #convert dictionary into dataframe if needed
+        elif isinstance(table, dict):  # convert dictionary into dataframe if needed
             self.df = pandas.DataFrame(table)
         else:
             raise Exception("Provided table is neither a dictionary nor a dataframe")
@@ -17,24 +18,29 @@ class DataQuality: #initialise the dq process by importing a table and setting u
             self.methods = methods
         else:
             raise Exception("Not all requested methods are available")
-        self.flagged, self.description = self.__self_or_none__(dataframe=self.df) #initialise dataframes in the class
-        count_max = max(self.description.loc["count", :].values) #identify max number of valid values per column
+        self.flagged, self.description = self.__self_or_none__(dataframe=self.df)  # initialise dataframes in the class
+        count_max = max(self.description.loc["count", :].values)  # identify max number of valid values per column
         self.unique_identifiers = []
-        for column in self.df.columns: #based on count_max the columns used to identify the duplicates are appended in a list
+        for column in self.df.columns:  # based on count_max the columns used to identify the duplicates are appended in a list
             if column != self.df.columns[0] and self.description.loc["count", column] == count_max:
                 self.unique_identifiers.append(column)
 
-    def __self_or_none__(self, dataframe=None): #initialise the dq dataframes or recovering previous ones
+    def __self_or_none__(self, dataframe=None):  # initialise the dq dataframes or recovering previous ones
         if not isinstance(dataframe, pandas.DataFrame):
             flagged = self.flagged
             description = self.description
         elif isinstance(dataframe, pandas.DataFrame):
-            flagged = dataframe.copy(deep=True) #Flagged df
-            description = flagged.replace({False: int(0), True: int(1)}).describe(include='all') #T/F converted into 0/1 before calculating statistical parameters
-            description.append(self.df.dtypes.rename("dtypes"), ignore_index=False) #column data types added to the description dataframe
+            flagged = dataframe.copy(deep=True)  # Flagged df
+            description = flagged.replace(
+                {False: int(0), True: int(1), "No": int(0), "Yes": int(1)}).describe( # T/F converted into 0/1 before calculating statistical parameters
+                include='all',
+                percentiles=[0.05, 0.5, 0.95])  #percentile 0.05 and 0.95 more relevant to identify possible outliers
+            description = description.append(self.df.dtypes.rename("dtypes"),
+                                             ignore_index=False)  # column data types added to the description dataframe
         return flagged, description
 
-    def __check_with_headers__(self, values_to_check, dataframe: pandas.DataFrame): #check if provided list/dictionary values are in the dataframe columns
+    def __check_with_headers__(self, values_to_check,
+                               dataframe: pandas.DataFrame):  # check if provided list/dictionary values are in the dataframe columns
         if isinstance(values_to_check, dict):
             values_to_check = values_to_check.keys()
         elif isinstance(values_to_check, list):
@@ -44,39 +50,43 @@ class DataQuality: #initialise the dq process by importing a table and setting u
         if any([key not in dataframe.columns for key in values_to_check]):
             raise Exception("Provided values(s) not in the table headers")
 
-    def flag(self, df=None): #flag the dataframe for errors
+    def flag(self, df=None):  # flag the dataframe for errors
         flagged, description = self.__self_or_none__(df)
         if "duplicates" in self.methods:
-            flagged["duplicates"] = flagged.duplicated(subset=self.unique_identifiers) #find duplicates based on previously defined identifiers (columns)
+            flagged["duplicates"] = flagged.duplicated(
+                subset=self.unique_identifiers)  # find duplicates based on previously defined identifiers (columns)
         if "null" in self.methods:
-            flagged["null"] = flagged.isnull().sum(axis=0) #count the number of null per row
+            flagged["null"] = flagged.isnull().sum(axis=0)  # count the number of null per row
         if df is None:
             self.flagged = flagged
         return flagged
 
-    def describe(self, df=None): #provide a new description for the dataframe or recover a previous one
+    def describe(self, df=None):  # provide a new description for the dataframe or recover a previous one
         flagged, description = self.__self_or_none__(df)
         if df is None:
             self.description = description
         return description
 
-    def clean(self, df=None): #clean the dataframe for duplicates, completely empty rows removed within other modules
+    def clean(self, df=None):  # clean the dataframe for duplicates, completely empty rows removed within other modules
         flagged, description = self.__self_or_none__(df)
-        cleaned = flagged.copy(deep=True).loc[:, description.columns] #use only non-flagging part of the flagged df
+        cleaned = flagged.copy(deep=True).loc[:, description.columns]  # use only non-flagging part of the flagged df
         if "duplicates" in flagged.columns:
             id_column = flagged.columns[0]
-            unique_id = flagged.loc[flagged.duplicates == False, id_column] #get identifies for unique rows
+            unique_id = flagged.loc[flagged.duplicates == False, id_column]  # get identifies for unique rows
             cleaned = cleaned[cleaned[id_column].isin(unique_id)]
+        if df is None:
+            self.description = description
         return cleaned
 
-    def values_format(self, columns_dtypes: dict, df=None): #format values based on provided dictionary
+    def values_format(self, columns_dtypes: dict, df=None):  # format values based on provided dictionary
         if not isinstance(df, pandas.DataFrame):
             df = self.df
         self.__check_with_headers__(values_to_check=columns_dtypes, dataframe=df)
 
         def dtype_change(value, column, dtype_requested):
-            if value is not None and pandas.isna(value) is False: # return ignore nan or none values as they are
-                m = re.search("<class '(?P<t>\w+)'>", str(type(value))) #extract variable type as string from type class
+            if value is not None and pandas.isna(value) is False:  # return ignore nan or none values as they are
+                m = re.search("<class '(?P<t>\w+)'>",
+                              str(type(value)))  # extract variable type as string from type class
                 type_current = m.group('t')
                 if type_current != dtype_requested:
                     if isinstance(value, str):
@@ -107,6 +117,6 @@ class DataQuality: #initialise the dq process by importing a table and setting u
                         raise Exception(message)
             return value
 
-        for column, column_dtype in columns_dtypes.items(): #convert dataframe based on dictionary
+        for column, column_dtype in columns_dtypes.items():  # convert dataframe based on dictionary
             df.loc[:, column] = df.loc[:, column].apply(lambda x: dtype_change(x, column, column_dtype))
         return df

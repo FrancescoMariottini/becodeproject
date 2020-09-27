@@ -28,6 +28,8 @@ def get_search_results(results=120):
                 search_results[apartmentlink] = False
         result_count = len(search_results)
         page_number += 1
+        if page_number % 10 == 0:
+            print("{}: {} results pages searched. ".format(time.asctime(),page_number)) #print current time and search results for internal checks
     return search_results
 
 def results_page_scrape(page_number,property_type):
@@ -40,6 +42,7 @@ def results_page_scrape(page_number,property_type):
     # span it returns as soon as finding them, else it raises an exception after 10 seconds.
     driver = webdriver.Chrome()
     driver.implicitly_wait(10)
+
     url=f'https://www.immoweb.be/en/search/{property_type}/for-sale?countries=BE&isALifeAnnuitySale=false&page={page_number}&orderBy=newest'
     driver.get(url)
     html = driver.page_source
