@@ -78,15 +78,15 @@ class DataQuality:  # initialise the dq process by importing a table and setting
             self.description = description
         return cleaned
 
-    def values_format(self, columns_dtypes: dict, df=None, none_to_string=True):  # format values based on provided dictionary
+    def values_format(self, columns_dtypes: dict, df=None, fill_empty=None):  # format values based on provided dictionary
         if not isinstance(df, pandas.DataFrame):
             df = self.df
         self.__check_with_headers__(values_to_check=columns_dtypes, dataframe=df)
 
         def dtype_change(value, column, dtype_requested):
-            if (value is None or pandas.isna(value) or value == "") and none_to_string:
-                value = "None"
-            elif value is not None and pandas.isna(value) is False and value != "":  # return ignore nan or none values as they are
+            if value is None or value == "" or value != value:
+                value = fill_empty
+            else:  # return ignore nan or none values as they are
                 m = re.search("<class '(?P<t>\w+)'>",
                               str(type(value)))  # extract variable type as string from type class
                 type_current = m.group('t')
@@ -114,9 +114,10 @@ class DataQuality:  # initialise the dq process by importing a table and setting
                     elif dtype_requested == "str":
                         value = str(value)
                     else:
-                        raise Exception(r"{} {} {} {} not converted into {}".format(column, type_current, str(value), dtype_requested))
+                        raise Exception(r"{} {} {} not converted into {}".format(column, type_current, str(value), dtype_requested))
             return value
 
         for column, column_dtype in columns_dtypes.items():  # convert dataframe based on dictionary
             df.loc[:, column] = df.loc[:, column].apply(lambda x: dtype_change(x, column, column_dtype))
+
         return df

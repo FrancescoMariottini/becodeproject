@@ -24,7 +24,7 @@ flagged = dq.flag()
 description = dq.describe()
 
 cleaned = dq.clean()
-cleaned = dq.values_format(df=cleaned, columns_dtypes=_VALUES_FORMAT)
+cleaned = dq.values_format(df=cleaned, columns_dtypes=_VALUES_FORMAT, fill_empty="None")
 
 description_cleaned = dq.describe(df=cleaned)
 
