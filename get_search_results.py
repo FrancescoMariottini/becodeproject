@@ -13,12 +13,17 @@ def get_search_results(minresults=40):
     True means house. False means apartment. Without argument only the first page is collected (~60 results)"""
     # initialise the dictionary with the results
     search_results = {}
-    # initialise the result count
+    # initialise the running result count
     result_count = 0
-    # set the startpage of the search
+    # set on which page to start the search
     page_number = 1
-    # start the loop
-    while result_count < results:
+    # initialise the webdriver globally for use inside the subroutine
+    global driver
+    driver = webdriver.Chrome()
+    driver.implicitly_wait(10)
+    
+    # start the loop    
+    while result_count < minresults:
         # for each loop, scrape one results page of houses and one of appartments
         # the results are added if they are not there yet
         for houselink in results_page_scrape(page_number,"house"):
@@ -29,6 +34,9 @@ def get_search_results(minresults=40):
                 search_results[apartmentlink] = False
         result_count = len(search_results)
         page_number += 1
+    
+    driver.close()
+    
     return search_results
 
 def results_page_scrape(page_number,property_type):
@@ -37,22 +45,19 @@ def results_page_scrape(page_number,property_type):
     links = []
     # I slow down the frequency of requests to avoid being identified and therefore ban from the site
     time.sleep(random.uniform(1.0, 2.0))
-    # setup the selenium webdriver; if able to find elements within the given
-    # span it returns as soon as finding them, else it raises an exception after 10 seconds.
-    driver = webdriver.Chrome()
-    driver.implicitly_wait(10)
     url=f'https://www.immoweb.be/en/search/{property_type}/for-sale?countries=BE&isALifeAnnuitySale=false&page={page_number}&orderBy=newest'
     driver.get(url)
     html = driver.page_source
     soup = BeautifulSoup(html,'lxml')
+    
     for elem in soup.find_all('a', attrs={"class":"card__title-link"}):
         # get hyperlink to property page
         hyperlink = elem.get('href')
-        # cut the searchID off
-        hyperlink = re.match("(.+)\?searchId=.+", hyperlink).group(1)
         # include in the return if it is not a -project-
         if "-project-" not in hyperlink:
+            # cut the searchID off
+            hyperlink = re.match("(.+)\?searchId=.+", hyperlink).group(1)
             links.append(hyperlink)
-    driver.close()
+            
     return links
     
