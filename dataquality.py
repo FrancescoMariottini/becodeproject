@@ -19,24 +19,24 @@ class DataQuality:  # initialise the dq process by importing a table and setting
         else:
             raise Exception("Not all requested methods are available")
         self.flagged, self.description = self.__self_or_none__(dataframe=self.df)  # initialise dataframes in the class
-        count_max = max(self.description.loc["count", :].values)  # identify max number of valid values per column
+        count_max = max(self.description.loc["count", :].values)
         self.unique_identifiers = []
         for column in self.df.columns:  # based on count_max the columns used to identify the duplicates are appended in a list
-            if column != self.df.columns[0] and self.description.loc["count", column] == count_max:
+            if column != self.df.columns[0] and self.description.loc["count", column] >=  0.5 * count_max:
                 self.unique_identifiers.append(column)
 
     def __self_or_none__(self, dataframe=None):  # initialise the dq dataframes or recovering previous ones
         if not isinstance(dataframe, pandas.DataFrame):
             flagged = self.flagged
-            description = self.description
         elif isinstance(dataframe, pandas.DataFrame):
             flagged = dataframe.copy(deep=True)  # Flagged df
-            description = flagged.replace(
-                {False: int(0), True: int(1), "No": int(0), "Yes": int(1), "None": None}).describe( # T/F converted into 0/1 before calculating statistical parameters
-                include='all',
-                percentiles=[0.05, 0.5, 0.95])  #percentile 0.05 and 0.95 more relevant to identify possible outliers
-            description = description.append(self.df.dtypes.rename("dtypes"),
-                                             ignore_index=False)  # column data types added to the description dataframe
+        description = flagged.replace(
+            {False: int(0), True: int(1), "No": int(0), "Yes": int(1), "None": None}).describe(
+            # T/F converted into 0/1 before calculating statistical parameters
+            include='all',
+            percentiles=[0.05, 0.5, 0.95])  # percentile 0.05 and 0.95 more relevant to identify possible outliers
+        description = description.append(self.df.dtypes.rename("dtypes"),
+                                         ignore_index=False)  # column data types added to the description dataframe
         return flagged, description
 
     def __check_with_headers__(self, values_to_check,
@@ -54,7 +54,8 @@ class DataQuality:  # initialise the dq process by importing a table and setting
         flagged, description = self.__self_or_none__(df)
         if "duplicates" in self.methods:
             flagged["duplicates"] = flagged.duplicated(
-                subset=self.unique_identifiers)  # find duplicates based on previously defined identifiers (columns)
+                subset=self.unique_identifiers).replace(
+                {True: 1, False: 0})  # find duplicates based on previously defined identifiers (columns)
         if "null" in self.methods:
             flagged["null"] = flagged.isnull().sum(axis=0)  # count the number of null per row
         if df is None:
@@ -72,19 +73,20 @@ class DataQuality:  # initialise the dq process by importing a table and setting
         cleaned = flagged.copy(deep=True).loc[:, description.columns]  # use only non-flagging part of the flagged df
         if "duplicates" in flagged.columns:
             id_column = flagged.columns[0]
-            unique_id = flagged.loc[flagged.duplicates == False, id_column]  # get identifies for unique rows
+            unique_id = flagged.loc[flagged.duplicates == 0, id_column]  # get identifies for unique rows
             cleaned = cleaned[cleaned[id_column].isin(unique_id)]
         if df is None:
             self.description = description
         return cleaned
 
-    def values_format(self, columns_dtypes: dict, df=None, fill_empty=None):  # format values based on provided dictionary
+    def values_format(self, columns_dtypes: dict, df=None,
+                      fill_empty=None):  # format values based on provided dictionary
         if not isinstance(df, pandas.DataFrame):
             df = self.df
         self.__check_with_headers__(values_to_check=columns_dtypes, dataframe=df)
 
         def dtype_change(value, column, dtype_requested):
-            if value is None or value == "" or value != value: #filling null values
+            if value is None or value == "" or value != value:  # filling null values
                 value = fill_empty
             else:  # return ignore nan or none values as they are
                 m = re.search("<class '(?P<t>\w+)'>",
@@ -114,12 +116,13 @@ class DataQuality:  # initialise the dq process by importing a table and setting
                     elif dtype_requested == "str":
                         value = str(value)
                     else:
-                        raise Exception(r"{} {} {} not converted into {}".format(column, type_current, str(value), dtype_requested))
+                        raise Exception(
+                            r"{} {} {} not converted into {}".format(column, type_current, str(value), dtype_requested))
             return value
 
         for column, column_dtype in columns_dtypes.items():  # convert dataframe based on dictionary
             df.loc[:, column] = df.loc[:, column].apply(lambda x: dtype_change(x, column, column_dtype))
 
-        df = df.fillna(value=fill_empty) #filling empty elements
+        df = df.fillna(value=fill_empty)  # filling empty elements
 
         return df
