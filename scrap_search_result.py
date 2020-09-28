@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup 
 import re 
 import requests
+import time
 
 def get_property_value(soup, name):
 
@@ -27,14 +28,9 @@ def get_property_bool(soup, name):
     #If nothing was found, will return false
     return False
 
-
 def scrap_list(dict_urls): 
     #listing all the property names
     properties = ["hyperlink" ,"locality", "postcode", "house_is", "property_subtype",  "price", "sale", "rooms_number", "area", "kitchen_has", "furnished",    "open_fire", "terrace", "terrace_area", "garden", "garden_area", "land_surface", "land_plot_surface", "facades_number", "swimming_pool_has"]
-
-
-
-
 
     #making a dict with all the property names as key and an empty list as value
     dict_dataframe = {}
@@ -42,13 +38,16 @@ def scrap_list(dict_urls):
         dict_dataframe[property_name] = []
 
     #scrap each url of the input and put the result into a variable
-    for key in dict_urls: 
+    url_number = 0
+    for key in dict_urls:
         dict_result_scrapping = scrap(key, dict_urls[key])
 
         #for each property (key) of the scrapping out put, match it with dataframe property. If none exist, just use None
         for key1 in dict_dataframe:
-            dict_dataframe[key1].append(dict_result_scrapping[key1])            
-    
+            dict_dataframe[key1].append(dict_result_scrapping[key1])
+        url_number += 1
+        if url_number % 10 == 0:
+            print(f"{time.asctime()}: {url_number} property searched. ")
     return dict_dataframe
 
 def scrap(url, is_house): 
