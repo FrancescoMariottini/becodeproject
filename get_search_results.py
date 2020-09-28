@@ -6,6 +6,7 @@ import time
 import random
 from random import randint
 import re
+from IPython.display import clear_output
 
 def get_search_results(minresults=40):
     """Collect property urls and types by going through the search result pages of new houses and appartments,
@@ -22,6 +23,9 @@ def get_search_results(minresults=40):
     driver = webdriver.Chrome()
     driver.implicitly_wait(10)
     
+    # start the progress indicator logic
+    start_time = time.monotonic()
+    
     # start the loop    
     while result_count < minresults:
         # for each loop, scrape one results page of houses and one of appartments
@@ -34,9 +38,17 @@ def get_search_results(minresults=40):
                 search_results[apartmentlink] = False
         result_count = len(search_results)
         page_number += 1
-    
+        # update progress indicator
+        clear_output(wait=True)
+        time_spent = time.monotonic() - start_time
+        total_time_estimation = 1/(result_count/minresults) * time_spent
+        time_remaining = total_time_estimation - time_spent
+        print(f"Finishing in {time_remaining/60:.1f} minutes")
+        
     driver.close()
     
+    clear_output(wait=True)
+    print("Finished")
     return search_results
 
 def results_page_scrape(page_number,property_type):
