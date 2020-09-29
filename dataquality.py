@@ -57,7 +57,7 @@ class DataQuality:  # initialise the dq process by importing a table and setting
                 subset=self.unique_identifiers).replace(
                 {True: 1, False: 0})  # find duplicates based on previously defined identifiers (columns)
         if "null" in self.methods:
-            flagged["null"] = flagged.isnull().sum(axis=0)  # count the number of null per row
+            flagged["null"] = flagged.isnull().sum(axis=1)  # count the number of null per row
         if df is None:
             self.flagged = flagged
         return flagged
