@@ -21,6 +21,7 @@ class DataQuality:  # initialise the dq process by importing a table and setting
         self.flagged, self.description = self.__self_or_none__(dataframe=self.df)  # initialise dataframes in the class
         count_max = max(self.description.loc["count", :].values)
         self.unique_identifiers = []
+        #10/12/20 automatic method removed in later version but still interesting
         for column in self.df.columns:  # based on count_max the columns used to identify the duplicates are appended in a list
             if column != self.df.columns[0] and self.description.loc["count", column] >=  0.5 * count_max:
                 self.unique_identifiers.append(column)
